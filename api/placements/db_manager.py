@@ -1,5 +1,7 @@
 from sqlalchemy import and_
 from fastapi import HTTPException
+
+from api.helper import get_file_url_from_bucket
 from .models import *
 from api.db import *
 from api.db_connect import database
@@ -24,7 +26,7 @@ async def get_placements_acc_to_user(user):
 
         placements = await get_placements()
         applied_placements = await get_placements_by_user(user.user_id)
-        return [placement for placement in placements if ((placement['placement_id'] not in [placements['placement_id'] for placements in applied_placements]) and (user_profile.stream_id in placement.stream_ids))]
+        return [placement for placement in placements if ((placement['placement_id'] not in [placements['placement_id'] for placements in applied_placements]) and (user_profile['stream_id'] in placement['stream_ids']))]
         # return [placement for placement in placements if user_profile.stream_id in placement.stream_ids]
     else:
         raise HTTPException(
@@ -62,18 +64,30 @@ async def get_placements_by_user(user_id: int):
 
 
 async def get_applicants(placement_id: int):
-    query = Placements.join(PlacementUserLinking, Placements.c.placement_id == PlacementUserLinking.c.placement_id, isouter=True).\
-        join(User,  User.c.user_id == PlacementUserLinking.c.user_id).\
-        select().where(PlacementUserLinking.c.placement_id == placement_id)
+    query = User.join(UserProfile, User.c.user_id == UserProfile.c.user_id, isouter=True)\
+        .join(PlacementUserLinking, PlacementUserLinking.c.user_id == User.c.user_id, isouter=True)\
+        .join(Streams, Streams.c.stream_id == UserProfile.c.stream_id)\
+        .select().where(PlacementUserLinking.c.placement_id == placement_id)
     data = await database.fetch_all(query)
-    print(data, len(data))
     if len(data) != 0 or data != []:
-        data_n = [dict(i) for i in data]
+        import json
         import pandas as pd
+        data_n = []
+        for applicant in data:
+            applicant = dict(applicant)
+            applicant['resume_path'] = get_file_url_from_bucket(
+                'kmv-placements', applicant['resume_path'], expiration=28800)
+            applicant_projects = await user_manager.get_user_projects(
+                applicant['user_id'])
+            applicant['projects'] = json.dumps(
+                [{'project_name': project['project_name'], 'project_url': project['project_url']} for project in applicant_projects])
+            data_n.append(applicant)
         df = pd.DataFrame(data_n)
-        df.drop(['user_password', 'user_role',  'user_created_at',
-                'user_updated_at'], axis=1, inplace=True)
-        # print(df)
+        df.drop(['user_id', 'user_id_1', 'user_id_2', 'user_profile_id',
+                 'stream_id', 'stream_id_1', 'placement_id', 'user_password', 'user_role',
+                 'user_created_at', 'user_updated_at', 'stream_id', 'stream_created_at',
+                 'stream_updated_at', 'user_profile_created_at', 'user_profile_updated_at',
+                 'placement_user_linking_id', 'placement_user_linking_updated_at', 'placement_user_linking_created_at'], axis=1, inplace=True)
         return df.to_csv()
     else:
         raise HTTPException(
