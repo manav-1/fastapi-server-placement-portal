@@ -4,7 +4,7 @@ from sqlalchemy import and_
 from api.db import *
 from api.db_connect import session, database
 from .models import *
-from api.helper import send_email
+from api.helper import send_email, get_file_url_from_bucket
 from api.hashing import get_password_hash, verify_password
 
 # from api.db_connect import database
@@ -91,13 +91,21 @@ async def get_user_profiles():
 async def get_user_profile(user_profile_id: int):
     query = UserProfile.select(
         UserProfile.c.user_profile_id == user_profile_id)
-    return await database.fetch_one(query=query)
+    data = dict(await database.fetch_one(query=query))
+    resume_url = get_file_url_from_bucket(
+        'kmv-placements', data['resume_path'])
+    data['resume_path'] = resume_url
+    return data
 
 
 async def get_user_profile_by_user_id(user_id: int):
     query = UserProfile.join(
         User, User.c.user_id == UserProfile.c.user_id, isouter=True).select(UserProfile.c.user_id == user_id)
-    return await database.fetch_one(query=query)
+    data = dict(await database.fetch_one(query=query))
+    resume_url = get_file_url_from_bucket(
+        'kmv-placements', data['resume_path'])
+    data['resume_path'] = resume_url
+    return data
 
 
 async def create_user_profile(user_profile_in: UserProfileIn):

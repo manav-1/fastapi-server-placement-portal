@@ -26,7 +26,6 @@ async def get_placements(current_user: UserOut = Depends(get_current_active_user
     """
     Get all placements according to user
     """
-    print(current_user.user_role)
     if  current_user.user_role == UserRole.ADMIN:
         return await db_manager.get_placements()
     return await db_manager.get_placements_acc_to_user(current_user)

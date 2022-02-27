@@ -27,7 +27,7 @@ def upload_to_bucket(file,user_id, bucket='kmv-placements'):
     )
     try:
         date_today = date.today()
-        path = f"resume/{file.filename}_{user_id}_{date_today.year}_{date_today.month}"
+        path = f"resume/Resume_{file.filename}_{user_id}_{date_today.year}_{date_today.month}"
         s3.upload_fileobj(file.file, bucket, path)
         return path
     except FileNotFoundError:

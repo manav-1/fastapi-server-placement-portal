@@ -21,11 +21,11 @@ async def get_placement(placement_id: int):
 async def get_placements_acc_to_user(user):
     user_profile = await user_manager.get_user_profile_by_user_id(user.user_id)
     if user_profile is not None:
-        query = Placements.join(PlacementUserLinking, Placements.c.placement_id == PlacementUserLinking.c.placement_id, isouter=True).\
-            select().where(and_(PlacementUserLinking.c.user_id !=
-                                user.user_id, Placements.c.is_active == True))
-        placements = await database.fetch_all(query=query)
-        return [placement for placement in placements if user_profile.stream_id in placement.stream_ids]
+
+        placements = await get_placements()
+        applied_placements = await get_placements_by_user(user.user_id)
+        return [placement for placement in placements if ((placement['placement_id'] not in [placements['placement_id'] for placements in applied_placements]) and (user_profile.stream_id in placement.stream_ids))]
+        # return [placement for placement in placements if user_profile.stream_id in placement.stream_ids]
     else:
         raise HTTPException(
             status_code=status.HTTP_412_PRECONDITION_FAILED, detail="User profile not found")
@@ -57,7 +57,7 @@ async def get_placements_by_user(user_id: int):
     query = Placements.join(
         PlacementUserLinking, Placements.c.placement_id ==
         PlacementUserLinking.c.placement_id, isouter=True).\
-        where(PlacementUserLinking.c.user_id == user_id)
+        select().where(PlacementUserLinking.c.user_id == user_id)
     return await database.fetch_all(query)
 
 
@@ -81,6 +81,13 @@ async def get_applicants(placement_id: int):
 
 
 async def apply_placement(placement_id: int, user_id: int):
-    query = PlacementUserLinking.insert().values(
-        placement_id=placement_id, user_id=user_id)
-    return await database.execute(query)
+    query = PlacementUserLinking.select().where(PlacementUserLinking.c.placement_id ==
+                                                placement_id, PlacementUserLinking.c.user_id == user_id)
+    data = await database.fetch_one(query)
+    if data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Already applied")
+    else:
+        query = PlacementUserLinking.insert().values(
+            placement_id=placement_id, user_id=user_id)
+        return await database.execute(query)
