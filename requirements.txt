@@ -12,3 +12,4 @@ SQLAlchemy==1.4.22
 asyncpg
 psycopg2-binary
 python-multipart
+pydantic[email]
