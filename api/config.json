@@ -6,6 +6,13 @@
       "user": "postgres",
       "password": "root",
       "database": "placements"
+    },
+    "PLACEMENTS_PROD":{
+      "host": "localhost",
+      "port": 5432,
+      "user": "postgres",
+      "password": "postgres",
+      "database": "placements"
     }
   }
 }

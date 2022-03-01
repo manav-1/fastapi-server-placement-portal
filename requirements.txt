@@ -9,3 +9,6 @@ pydantic==1.9.0
 python-dotenv==0.19.2
 python_jose==3.3.0
 SQLAlchemy==1.4.22
+asyncpg
+psycopg2-binary
+python-multipart
