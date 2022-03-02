@@ -151,6 +151,12 @@ async def get_user_profiles():
     return await db_manager.get_user_profiles()
 
 
+@user_router.get('/profiles/user/{user_id}/', status_code=status.HTTP_200_OK, response_model=UserProfileOut)
+async def get_user_profile_by_user(user_id: int):
+    return await db_manager.get_user_profile_by_user_id(user_id)
+
+
+
 @user_router.get('/profiles/{user_profile_id}/', status_code=status.HTTP_200_OK, response_model=UserProfileOut)
 async def get_user_profile(user_profile_id: int):
     return await db_manager.get_user_profile(user_profile_id)
@@ -167,10 +173,6 @@ async def create_user_profile(user_profile_in: UserProfileIn):
 async def update_user_profile(user_profile_id: int, user_profile_in: UserProfileUpdate):
     return await db_manager.update_user_profile(user_profile_id, user_profile_in)
 
-
-@user_router.get('/profiles/user/{user_id}/', status_code=status.HTTP_200_OK, response_model=UserProfileOut)
-async def get_user_profile_by_user(user_id: int):
-    return await db_manager.get_user_profile_by_user_id(user_id)
 
 
 @user_router.post('/resume/{user_id}/', status_code=status.HTTP_201_CREATED)

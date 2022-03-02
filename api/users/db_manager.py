@@ -6,6 +6,7 @@ from api.db_connect import session, database
 from .models import *
 from api.helper import send_email, get_file_url_from_bucket
 from api.hashing import get_password_hash, verify_password
+from fastapi import HTTPException, status
 
 # from api.db_connect import database
 # from api.db import User
@@ -101,11 +102,16 @@ async def get_user_profile(user_profile_id: int):
 async def get_user_profile_by_user_id(user_id: int):
     query = UserProfile.join(
         User, User.c.user_id == UserProfile.c.user_id, isouter=True).select(UserProfile.c.user_id == user_id)
-    data = dict(await database.fetch_one(query=query))
-    resume_url = get_file_url_from_bucket(
-        'kmv-placements', data['resume_path'])
-    data['resume_path'] = resume_url
-    return data
+    data = await database.fetch_one(query=query)
+
+    if data:
+        data = dict(data)
+        resume_url = get_file_url_from_bucket(
+            'kmv-placements', data['resume_path'])
+        data['resume_path'] = resume_url
+        return data
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                        detail="User Profile not found")
 
 
 async def create_user_profile(user_profile_in: UserProfileIn):
