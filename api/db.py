@@ -120,3 +120,19 @@ PlacementUserLinking: Table = Table(
     Column("placement_user_linking_updated_at", DateTime,
            server_default=utcnow(), server_onupdate=utcnow()),
 )
+
+EmailData: Table = Table(
+    'email_data',
+    global_metadata,
+    Column("email_data_id", Integer, primary_key=True),
+    Column("hr_email", Text, nullable=False),
+    Column("hr_name", Text, nullable=False),
+    Column('email_sent_at', DateTime, nullable=False,
+           server_default=utcnow(), server_onupdate=utcnow()),
+    Column('email_sent_by_user_id', Integer, ForeignKey(User.c.user_id),
+           nullable=False),
+    Column('email_type', Boolean, nullable=False),
+    Column('email_data_created_at', DateTime, server_default=utcnow()),
+    Column('email_data_updated_at', DateTime,
+           server_default=utcnow(), server_onupdate=utcnow()),
+)

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, status, UploadFile, HTTPException
+from fastapi import APIRouter, status, UploadFile, HTTPException, Depends
+
 from .models import *
 import os
 import ssl
@@ -9,11 +10,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import shutil
 import mimetypes
+from api.db_connect import database
+from api.users.models import UserOut
+from api.users.views import get_current_active_user
+
+from .db_manager import add_email_to_db, get_all_emails
 
 load_dotenv()
 email_router = APIRouter(prefix="/email", tags=["Email"])
 
-STYLE_TAGS = """
+PLACEMENT_STYLE_TAGS = """
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Karla&display=swap");
 .container {
@@ -52,7 +58,7 @@ text-align: justify ;
 
 </style>
 """
-BODY_CONTENT = """
+PLACEMENT_BODY_CONTENT = """
 <body>
         <link href="https://fonts.googleapis.com/css2?family=Karla&display=swap" rel="stylesheet" type="text/css"/> 
         <div class='container'>
@@ -101,27 +107,32 @@ BODY_CONTENT = """
 
     </body>
 """
-HTML_CONTENT = f"""
+PLACEMENT_HTML_CONTENT = f"""
     <!DOCTYPE html>
         <html lang="en">
             <head>
-                {STYLE_TAGS}
+                {PLACEMENT_STYLE_TAGS}
                 <meta charset="UTF-8">
                 <!-- <link rel="stylesheet" href="css/bootstrap.css"> -->
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Document</title>
             </head>
-            {BODY_CONTENT}
+            {PLACEMENT_BODY_CONTENT}
         </html>
 """
+
+INTERNSHIP_HTML_CONTENT = f"""Hello"""
+
 FILE_PATH = 'files/Placement_Brochure.pdf'
 
 
 @email_router.post('/', status_code=status.HTTP_201_CREATED)
-async def send_email(payload: Email):
+@database.transaction()
+async def send_email(payload: Email, current_user: UserOut = Depends(get_current_active_user)):
     """
     Send an email
     """
+    print(payload, current_user)
     try:
         SMTP_SERVER = "smtp.gmail.com"
         SMTP_PORT = 587
@@ -153,7 +164,7 @@ async def send_email(payload: Email):
         database.dropna(inplace=True)
         for email, name in zip(database[database.columns[1]], database[database.columns[0]]):
             # creating the msg content
-            msg_content = HTML_CONTENT
+            msg_content = PLACEMENT_HTML_CONTENT if payload.email_type else INTERNSHIP_HTML_CONTENT
             msg_content = msg_content.replace("Manager", name, 1)
             html_part = MIMEText(msg_content, 'html')
             # creating the msg Object
@@ -164,26 +175,12 @@ async def send_email(payload: Email):
             msg.attach(html_part)
             msg.attach(pdf)
             server.send_message(msg)
+            await add_email_to_db(EmailDbIn(hr_email=email, hr_name=name,
+                                            email_sent_at=datetime.now(), email_sent_by_user_id=current_user.user_id, email_type=payload.email_type))
         server.quit()
         return {"message": "Email sent successfully",
                 "status": status.HTTP_200_OK,
                 "emails": list(database[database.columns[1]])}
-        # creating the msb Object
-        # msg = MIMEMultipart('alternative')
-        # msg['Subject'] = payload.subject
-        # msg['From'] = str(SMTP_USER)
-        # msg['To'] = str(payload.receiver_email)
-        # msg.attach(html_part)
-
-        # ctype, encoding = mimetypes.guess_type(FILE_PATH)
-        # maintype, subtype = ctype.split('/', 1)
-        # pdf = MIMEApplication(open(FILE_PATH, 'rb').read())
-        # pdf.add_header('Content-Disposition', 'attachment', filename=os.path.splitext(
-        #     FILE_PATH)[0].split("/")[-1] + os.path.splitext(FILE_PATH)[1])
-        # msg.attach(pdf)
-        # server.send_message(msg)
-        # server.quit()
-        # return {"message": f"Email sent successfully to {payload.receiver_email}"}
     except smtplib.SMTPAuthenticationError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={
                             "message": f"Invalid credentials for {SMTP_USER}"})
@@ -204,3 +201,11 @@ async def store_placement_brochure(file: UploadFile):
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     return {"info": f"file '{file.filename}' saved at '{file_location}'", "status": status.HTTP_201_CREATED}
+
+
+@email_router.get('/sent', status_code=status.HTTP_200_OK, response_model=List[EmailDbOut])
+async def get_email_data():
+    """
+    Get the Email Data
+    """
+    return await get_all_emails()

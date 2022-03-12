@@ -11,8 +11,8 @@ with open("api/config.json") as config_file:
     config = json.loads(config_file.read())
 
 
-DATABASE_BASE_URL = f"postgresql://{config['DATABASES']['PLACEMENTS_PROD']['user']}:{config['DATABASES']['PLACEMENTS_PROD']['password']}@{config['DATABASES']['PLACEMENTS_PROD']['host']}:{config['DATABASES']['PLACEMENTS_PROD']['port']}"
-DATABASE_URL = f'{DATABASE_BASE_URL}/{config["DATABASES"]["PLACEMENTS_PROD"]["database"]}'
+DATABASE_BASE_URL = f"postgresql://{config['DATABASES']['PLACEMENTS']['user']}:{config['DATABASES']['PLACEMENTS']['password']}@{config['DATABASES']['PLACEMENTS']['host']}:{config['DATABASES']['PLACEMENTS']['port']}"
+DATABASE_URL = f'{DATABASE_BASE_URL}/{config["DATABASES"]["PLACEMENTS"]["database"]}'
 database = Database(DATABASE_URL)
 engine = create_engine(DATABASE_URL)
 if not engine.dialect.has_schema(engine, 'global'):
