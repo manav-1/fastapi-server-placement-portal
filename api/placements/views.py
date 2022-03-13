@@ -4,21 +4,26 @@ from fastapi import UploadFile, File
 from .models import *
 from . import db_manager
 from api.db_connect import database
-from api.users.views import  get_current_active_user
-from api.users.models import  *
-from  api.db import UserRole
-from fastapi import  Depends
+from api.users.views import get_current_active_user
+from api.users.models import *
+from api.db import UserRole
+from fastapi import Depends
+from fastapi import HTTPException
 
 placement_router = APIRouter(prefix="/placements", tags=["Placements"])
 
 
 @placement_router.post("/", response_model=int, status_code=status.HTTP_201_CREATED)
 @database.transaction()
-async def create_placement(placement: Placement):
+async def create_placement(placement: Placement, current_user: UserOut = Depends(get_current_active_user)):
     """
     Create a placement
     """
-    return await db_manager.create_placement(placement)
+    if current_user.user_role == UserRole.ADMIN:
+        return await db_manager.create_placement(placement)
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to perform this action")
 
 
 @placement_router.get("/", response_model=List[PlacementOut])
@@ -26,7 +31,7 @@ async def get_placements(current_user: UserOut = Depends(get_current_active_user
     """
     Get all placements according to user
     """
-    if  current_user.user_role == UserRole.ADMIN:
+    if current_user.user_role == UserRole.ADMIN:
         return await db_manager.get_placements()
     return await db_manager.get_placements_acc_to_user(current_user)
 
@@ -41,19 +46,27 @@ async def get_placement(placement_id: int):
 
 @placement_router.put("/{placement_id}", response_model=Placement)
 @database.transaction()
-async def update_placement(placement_id: int, placement: PlacementUpdate):
+async def update_placement(placement_id: int, placement: PlacementUpdate, current_user: UserOut = Depends(get_current_active_user)):
     """
     Update a placement
     """
-    return await db_manager.update_placement(placement_id, placement)
+    if current_user.user_role == UserRole.ADMIN:
+        return await db_manager.update_placement(placement_id, placement)
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to perform this action")
 
 
 @placement_router.delete("/{placement_id}")
-async def delete_placement(placement_id: int):
+async def delete_placement(placement_id: int, current_user: UserOut = Depends(get_current_active_user)):
     """
     Delete a placement
     """
-    return await db_manager.delete_placement(placement_id)
+    if current_user.user_role == UserRole.ADMIN:
+        return await db_manager.delete_placement(placement_id)
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to perform this action")
 
 
 @placement_router.get('/placements_by_stream/{stream_id}', response_model=List[Placement])
@@ -82,7 +95,7 @@ async def apply_placement(placement_id: int, user_id: int):
 
 
 @placement_router.get('/applicants/{placement_id}', status_code=status.HTTP_200_OK)
-async def get_applicants(placement_id: int):
+async def get_applicants(placement_id: int, current_user: UserOut = Depends(get_current_active_user)):
     """
     Get applicants for a placement
     """

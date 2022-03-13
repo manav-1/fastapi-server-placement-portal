@@ -13,6 +13,7 @@ import mimetypes
 from api.db_connect import database
 from api.users.models import UserOut
 from api.users.views import get_current_active_user
+from api.users.models import *
 
 from .db_manager import add_email_to_db, get_all_emails
 
@@ -132,7 +133,6 @@ async def send_email(payload: Email, current_user: UserOut = Depends(get_current
     """
     Send an email
     """
-    print(payload, current_user)
     try:
         SMTP_SERVER = "smtp.gmail.com"
         SMTP_PORT = 587
@@ -193,19 +193,31 @@ async def send_email(payload: Email, current_user: UserOut = Depends(get_current
 
 
 @email_router.post('/placement_brochure', status_code=status.HTTP_201_CREATED)
-async def store_placement_brochure(file: UploadFile):
+async def store_placement_brochure(file: UploadFile, current_user: UserOut = Depends(get_current_active_user)):
     """
     Store the Placement Brochure
     """
-    file_location = f"files/Placement_Brochure.pdf"
-    with open(file_location, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    return {"info": f"file '{file.filename}' saved at '{file_location}'", "status": status.HTTP_201_CREATED}
+    if current_user.user_role == UserRole.ADMIN:
+        try:
+            file_location = f"files/Placement_Brochure.pdf"
+            with open(file_location, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return {"info": f"file '{file.filename}' saved at '{file_location}'", "status": status.HTTP_201_CREATED}
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={
+                                "message": f"Error in saving file: {e}"})
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={
+                            "message": "Only admins can upload files"})
 
 
 @email_router.get('/sent', status_code=status.HTTP_200_OK, response_model=List[EmailDbOut])
-async def get_email_data():
+async def get_email_data(current_user: UserOut = Depends(get_current_active_user)):
     """
     Get the Email Data
     """
-    return await get_all_emails()
+    if current_user.user_role == UserRole.ADMIN:
+        return await get_all_emails()
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={
+                            "message": "You are not authorized to access this resource"})
