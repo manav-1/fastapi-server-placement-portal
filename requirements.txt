@@ -13,5 +13,3 @@ asyncpg
 psycopg2-binary
 python-multipart
 pydantic[email]
-gunicorn
-uvicorn
