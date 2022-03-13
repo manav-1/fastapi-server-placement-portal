@@ -8,7 +8,7 @@
       "database": "placements"
     },
     "PLACEMENTS_PROD":{
-      "host": "ec2-65-2-70-38.ap-south-1.compute.amazonaws.com",
+      "host": "",
       "port": 5432,
       "user": "postgres",
       "password": "postgres",
