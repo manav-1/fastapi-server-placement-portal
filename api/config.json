@@ -13,6 +13,13 @@
       "user": "postgres",
       "password": "postgres",
       "database": "placements"
+    },
+    "HEROKU_POSTGRES":{
+      "host": "ec2-3-209-61-239.compute-1.amazonaws.com",
+      "port": 5432,
+      "user": "abthesaqochrvw",
+      "password": "a2f926e04a5022ebea004ac3afe9082090295d14d8771ccc640322043462a61c",
+      "database": "d2hsf2ppku8eqi"
     }
   }
 }
