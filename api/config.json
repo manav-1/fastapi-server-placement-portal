@@ -13,6 +13,13 @@
       "user": "postgres",
       "password": "postgres",
       "database": "placements"
+    },
+    "HEROKU_PRODUCTION":{
+      "host": "ec2-52-207-74-100.compute-1.amazonaws.com",
+      "port": 5432,
+      "user": "ypbmxuhrvrbnwq",
+      "password": "5d6973d8a895a3b34bb2a46969f8b8697429f5f26d64eaee482a40b2679f7938",
+      "database": "d8e77c3vtg0ctj"
     }
   }
 }
