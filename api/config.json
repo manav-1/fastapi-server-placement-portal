@@ -8,10 +8,10 @@
       "database": "placements"
     },
     "PLACEMENTS_PROD":{
-      "host": "",
+      "host": "database-1.crmgynhbdqia.ap-south-1.rds.amazonaws.com",
       "port": 5432,
       "user": "postgres",
-      "password": "postgres",
+      "password": "oj1AA3Ic4Dqy2Ro5GRG0",
       "database": "placements"
     },
     "HEROKU_PRODUCTION":{

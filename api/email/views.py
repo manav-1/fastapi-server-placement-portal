@@ -182,14 +182,14 @@ async def send_email(payload: Email, current_user: UserOut = Depends(get_current
                 "status": status.HTTP_200_OK,
                 "emails": list(database[database.columns[1]])}
     except smtplib.SMTPAuthenticationError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={
-                            "message": f"Invalid credentials for {SMTP_USER}"})
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=f"Invalid credentials for {SMTP_USER}")
     except smtplib.SMTPException as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={
-                            "message": f"Error in sending email: {e}"})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Error in sending email: {e}")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={
-                            "message": f"Error in sending email: {e}"})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Error in sending email: {e}")
 
 
 @email_router.post('/placement_brochure', status_code=status.HTTP_201_CREATED)
