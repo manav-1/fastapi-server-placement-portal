@@ -28,6 +28,11 @@ class UserRole(Enum):
     USER = "user"
 
 
+class ContactPosition(Enum):
+    CORE = 'core'
+    SECRETARY = 'secretary'
+
+
 @compiles(utcnow, "postgresql")
 def pg_utcnow(element, compiler, **kw):
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
@@ -134,5 +139,19 @@ EmailData: Table = Table(
     Column('email_type', Boolean, nullable=False),
     Column('email_data_created_at', DateTime, server_default=utcnow()),
     Column('email_data_updated_at', DateTime,
+           server_default=utcnow(), server_onupdate=utcnow()),
+)
+
+Contact: Table = Table(
+    'contact',
+    global_metadata,
+    Column("contact_id", Integer, primary_key=True),
+    Column("contact_name", Text, nullable=False),
+    Column("contact_email", Text, nullable=False),
+    Column("contact_mobile", BigInteger, nullable=False),
+    Column("contact_position", SqlalchemyEnum(
+        ContactPosition), nullable=False),
+    Column("contact_created_at", DateTime, server_default=utcnow()),
+    Column("contact_updated_at", DateTime,
            server_default=utcnow(), server_onupdate=utcnow()),
 )

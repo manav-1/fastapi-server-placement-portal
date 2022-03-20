@@ -7,6 +7,7 @@ from api.placements.views import placement_router
 from api.users.views import user_router
 from api.streams.views import stream_router
 from api.email.views import email_router
+from api.contacts.views import contact_router
 app = FastAPI()
 
 origins = ["http://localhost:3000", "localhost:3000", "*"]
@@ -36,3 +37,4 @@ app.include_router(placement_router)
 app.include_router(user_router)
 app.include_router(stream_router)
 app.include_router(email_router)
+app.include_router(contact_router)

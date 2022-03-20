@@ -1,5 +1,7 @@
 from fastapi import APIRouter, status, UploadFile, HTTPException, Depends
 
+from api.contacts.db_manager import get_core_team_contacts, get_secretaries_contacts
+
 from .models import *
 import os
 import ssl
@@ -71,7 +73,7 @@ PLACEMENT_BODY_CONTENT = """
                 <img class='fluid' src="https://i.ibb.co/nn7M39q/Left-Content.png" alt="Left Content">
             </div>
             <div class="right-content">
-                <p class="h5">Dear Manager,<br>
+                <p class="h5">Dear MANAGER_NAME,<br>
 
                     Greetings from <b>Start@KMV, The Placement Cell Of Keshav Mahavidyalaya</b>, University of
                     Delhi.<br><br>
@@ -92,8 +94,7 @@ PLACEMENT_BODY_CONTENT = """
                     PFA: Placement Brochure<br><br>
 
                     For further information, kindly contact -<br>
-                    Aarushi: +91 9810443298<br>
-                    Raghav: +91 8506036566<br><br>
+                    CONTACT_INFO
 
                     Warm Regards<br>
                     Start@KMV<br>
@@ -121,11 +122,63 @@ PLACEMENT_HTML_CONTENT = f"""
             {PLACEMENT_BODY_CONTENT}
         </html>
 """
+INTERNSHIP_BODY_CONTENT = """
+<body>
+        <link href="https://fonts.googleapis.com/css2?family=Karla&display=swap" rel="stylesheet" type="text/css"/> 
+        <div class='container'>
+        <div class="header">
+            <img class='fluid' src="https://i.ibb.co/TTzKDSt/Invites-you-to-2.png" alt="Header.png">
+        </div>
+        <div class='content'>
+            <div class='left-content'>
+                <img class='fluid' src="https://i.ibb.co/nn7M39q/Left-Content.png" alt="Left Content">
+            </div>
+            <div class="right-content">
+                <p class="h5">Dear MANAGER_NAME,<br>
 
-INTERNSHIP_HTML_CONTENT = f"""Hello"""
+                    Greetings from <b>Start@KMV, The Placement Cell Of Keshav Mahavidyalaya</b>, University of
+                    Delhi.<br><br>
 
+                    Keshav Mahavidyalaya, is regarded as one of the best off-campus colleges and has carved a 
+                    niche for itself by garnering University positions year after year. The students of Keshav 
+                    Mahavidyalaya are a diverse group of exceptional individuals, and have interned at 
+                    prestigious companies like <b>EY, ONGC, Deloitte, BHEL, Edelweiss, NITI Aayog, Grant 
+                    Thornton, ZFI, Bajaj Capital & PNB, among others.</b><br><br>
+
+                    We wish to set new records this season, and thus, <b>invite your esteemed organization for campus
+                    internship recruitments.</b> We are open to On-campus, Off-campus and Virtual drives as well.<br><br>
+
+                    PFA: Placement Brochure<br><br>
+
+                    For further information, kindly contact -<br>
+                    CONTACT_INFO
+
+                    Warm Regards<br>
+                    Start@KMV<br>
+                    The Placement Cell<br>
+                    Keshav Mahavidyalaya<br>
+                    University of Delhi<br>
+                </p>
+                <img class='fluid' src="https://i.ibb.co/1dbZp3K/Past-recruiters-mailing-content.png" alt="Past Recruiters">
+            </div>
+        </div>
+    </div>
+
+    </body>
+"""
+INTERNSHIP_HTML_CONTENT = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                {PLACEMENT_STYLE_TAGS}
+                <meta charset="UTF-8">
+                <!-- <link rel="stylesheet" href="css/bootstrap.css"> -->
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Document</title>
+            </head>
+            {INTERNSHIP_BODY_CONTENT}
+        </html>"""
 FILE_PATH = 'files/Placement_Brochure.pdf'
-
 
 @email_router.post('/', status_code=status.HTTP_201_CREATED)
 @database.transaction()
@@ -147,12 +200,11 @@ async def send_email(payload: Email, current_user: UserOut = Depends(get_current
         server.starttls(context=CONTEXT)
         server.login(SMTP_USER, SMTP_PASSWORD)
         ctype, encoding = mimetypes.guess_type(FILE_PATH)
-        maintype, subtype = ctype.split('/', 1)
         pdf = MIMEApplication(open(FILE_PATH, 'rb').read())
         pdf.add_header('Content-Disposition', 'attachment', filename=os.path.splitext(
             FILE_PATH)[0].split("/")[-1] + os.path.splitext(FILE_PATH)[1])
-
         import pandas as pd
+        import random
         database = pd.read_csv(payload.sheet_url)
         database = database.iloc[payload.starting_number -
                                  1:payload.ending_number, ::]
@@ -165,7 +217,13 @@ async def send_email(payload: Email, current_user: UserOut = Depends(get_current
         for email, name in zip(database[database.columns[1]], database[database.columns[0]]):
             # creating the msg content
             msg_content = PLACEMENT_HTML_CONTENT if payload.email_type else INTERNSHIP_HTML_CONTENT
-            msg_content = msg_content.replace("Manager", name, 1)
+            contacts = random.sample(await get_core_team_contacts() if payload.email_type else await get_secretaries_contacts(), 2)
+            contact_string = f"""
+                {contacts[0].get('contact_name')}: {contacts[0].get('contact_mobile')}<br>
+                {contacts[1].get('contact_name')}: {contacts[1].get('contact_mobile')}<br><br>
+            """
+            msg_content = msg_content.replace('CONTACT_INFO', contact_string)
+            msg_content = msg_content.replace("MANAGER_NAME", name, 1)
             html_part = MIMEText(msg_content, 'html')
             # creating the msg Object
             msg = MIMEMultipart('alternative')
